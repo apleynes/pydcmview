@@ -1,0 +1,20 @@
+# Include the README and license
+include README.md
+include LICENSE
+include CLAUDE.md
+
+# Include requirements file  
+include requirements.txt
+
+# Include the pyproject.toml for build configuration
+include pyproject.toml
+
+# Exclude test data and development files
+exclude test_data/*
+exclude .git*
+exclude .DS_Store
+exclude *.pyc
+exclude __pycache__/
+
+# Exclude egg-info during development
+prune *.egg-info

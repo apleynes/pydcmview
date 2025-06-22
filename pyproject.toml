@@ -5,14 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pydcmview"
 version = "0.1.0"
-description = "Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats"
-authors = [{name = "PyDCMView Contributors"}]
+description = "Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high-quality graphics rendering"
+authors = [{name = "Andrew P. Leynes", email = "19675801+apleynes@users.noreply.github.com"}]
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.8"
+keywords = ["medical", "imaging", "dicom", "nifti", "nrrd", "viewer", "terminal", "tui"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -23,10 +27,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Terminals",
+    "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 dependencies = [
     "textual>=0.70.0",
-    "rich-pixels>=2.1.0",
+    "textual-image>=0.3.0",
     "SimpleITK>=2.3.0",
     "numpy>=1.21.0",
     "pydicom>=2.3.0",
@@ -37,8 +44,11 @@ dependencies = [
 pydcmview = "pydcmview.main:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/pydcmview"
-Repository = "https://github.com/yourusername/pydcmview"
+Homepage = "https://github.com/apleynes/pydcmview"
+Repository = "https://github.com/apleynes/pydcmview"
+Documentation = "https://github.com/apleynes/pydcmview#readme"
+"Bug Reports" = "https://github.com/apleynes/pydcmview/issues"
+"Source Code" = "https://github.com/apleynes/pydcmview"
 
 [tool.setuptools.packages.find]
 where = ["src"]

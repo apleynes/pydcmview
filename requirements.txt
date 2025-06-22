@@ -1,5 +1,5 @@
 textual>=0.70.0
-rich-pixels>=2.1.0
+textual-image>=0.3.0
 SimpleITK>=2.3.0
 numpy>=1.21.0
 pydicom>=2.3.0
