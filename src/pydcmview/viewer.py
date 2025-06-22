@@ -8,93 +8,11 @@ from textual.app import App, ComposeResult
 from textual.containers import Container
 from textual.widgets import Static
 from textual.binding import Binding
-from textual.screen import Screen
 from textual_image.widget import Image
 from rich.text import Text
 
 from .image_loader import ImageLoader
 
-
-class DimensionSelectionScreen(Screen):
-    """Screen for selecting display dimensions."""
-    
-    BINDINGS = [
-        Binding("escape", "cancel", "Cancel"),
-        Binding("enter", "confirm", "Confirm"),
-        Binding("up,k", "cursor_up", "Up"),
-        Binding("down,j", "cursor_down", "Down"),
-        Binding("x", "set_x", "Set X"),
-        Binding("y", "set_y", "Set Y"),
-    ]
-    
-    def __init__(self, shape: Tuple[int, ...], current_x: int, current_y: int):
-        super().__init__()
-        self.shape = shape
-        self.current_x = current_x
-        self.current_y = current_y
-        self.selected_dim = 0
-        self.new_x = current_x
-        self.new_y = current_y
-    
-    def compose(self) -> ComposeResult:
-        """Create the dimension selection interface."""
-        yield Container(
-            Static("Select Display Dimensions", id="title"),
-            Static(self._get_dimension_text(), id="dimensions"),
-            Static("Use ↑↓/jk to navigate, x/y to assign, Enter to confirm, Esc to cancel", id="help"),
-            id="dim_container"
-        )
-    
-    def _get_dimension_text(self) -> Text:
-        """Generate the dimension selection text."""
-        text = Text()
-        for i, size in enumerate(self.shape):
-            prefix = "→ " if i == self.selected_dim else "  "
-            x_marker = " [X]" if i == self.new_x else ""
-            y_marker = " [Y]" if i == self.new_y else ""
-            
-            line = f"{prefix}Dim {i}: size {size}{x_marker}{y_marker}\n"
-            if i == self.selected_dim:
-                text.append(line, style="bold yellow")
-            else:
-                text.append(line)
-        return text
-    
-    def action_cursor_up(self):
-        """Move cursor up."""
-        self.selected_dim = max(0, self.selected_dim - 1)
-        self.query_one("#dimensions", Static).update(self._get_dimension_text())
-    
-    def action_cursor_down(self):
-        """Move cursor down."""
-        self.selected_dim = min(len(self.shape) - 1, self.selected_dim + 1)
-        self.query_one("#dimensions", Static).update(self._get_dimension_text())
-    
-    def action_set_x(self):
-        """Set selected dimension as X axis."""
-        if self.selected_dim == self.new_y:
-            # If selected dim is already Y, swap X and Y
-            self.new_x, self.new_y = self.new_y, self.new_x
-        else:
-            self.new_x = self.selected_dim
-        self.query_one("#dimensions", Static).update(self._get_dimension_text())
-    
-    def action_set_y(self):
-        """Set selected dimension as Y axis."""
-        if self.selected_dim == self.new_x:
-            # If selected dim is already X, swap X and Y
-            self.new_x, self.new_y = self.new_y, self.new_x
-        else:
-            self.new_y = self.selected_dim
-        self.query_one("#dimensions", Static).update(self._get_dimension_text())
-    
-    def action_confirm(self):
-        """Confirm selection."""
-        self.dismiss((self.new_x, self.new_y))
-    
-    def action_cancel(self):
-        """Cancel selection."""
-        self.dismiss(None)
 
 
 class ImageViewer(App):

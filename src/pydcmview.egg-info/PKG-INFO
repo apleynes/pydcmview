@@ -2,20 +2,19 @@ Metadata-Version: 2.4
 Name: pydcmview
 Version: 0.1.0
 Summary: Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high-quality graphics rendering
-Author-email: "Andrew P. Leynes" <andrew.leynes@example.com>
-License: MIT
-Project-URL: Homepage, https://github.com/aleynes/pydcmview
-Project-URL: Repository, https://github.com/aleynes/pydcmview
-Project-URL: Documentation, https://github.com/aleynes/pydcmview#readme
-Project-URL: Bug Reports, https://github.com/aleynes/pydcmview/issues
-Project-URL: Source Code, https://github.com/aleynes/pydcmview
+Author-email: "Andrew P. Leynes" <19675801+apleynes@users.noreply.github.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/apleynes/pydcmview
+Project-URL: Repository, https://github.com/apleynes/pydcmview
+Project-URL: Documentation, https://github.com/apleynes/pydcmview#readme
+Project-URL: Bug Reports, https://github.com/apleynes/pydcmview/issues
+Project-URL: Source Code, https://github.com/apleynes/pydcmview
 Keywords: medical,imaging,dicom,nifti,nrrd,viewer,terminal,tui
 Classifier: Development Status :: 4 - Beta
 Classifier: Environment :: Console
 Classifier: Intended Audience :: Healthcare Industry
 Classifier: Intended Audience :: Science/Research
 Classifier: Intended Audience :: Developers
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.8
