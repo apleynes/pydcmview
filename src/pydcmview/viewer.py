@@ -9,7 +9,7 @@ from textual.containers import Container
 from textual.widgets import Static
 from textual.binding import Binding
 from textual.screen import Screen
-from rich_pixels import Pixels
+from textual_image.widget import Image
 from rich.text import Text
 
 from .image_loader import ImageLoader
@@ -164,7 +164,10 @@ class ImageViewer(App):
         
     def compose(self) -> ComposeResult:
         """Create the main interface."""
-        yield Container(id="image_container")
+        yield Container(
+            Image("", id="image_display"),
+            id="image_container"
+        )
         yield Container(
             Static("Loading...", id="status"),
             id="status_bar"
@@ -229,14 +232,14 @@ class ImageViewer(App):
     
     def _add_crosshair_overlay(self, pil_image):
         """Add red crosshair overlay to the PIL image."""
-        from PIL import Image, ImageDraw
+        from PIL import Image as PILImage, ImageDraw
         
         # Convert to RGBA for transparency support
         if pil_image.mode != 'RGBA':
             pil_image = pil_image.convert('RGBA')
         
         # Create a transparent overlay
-        overlay = Image.new('RGBA', pil_image.size, (0, 0, 0, 0))
+        overlay = PILImage.new('RGBA', pil_image.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
         
         # Calculate crosshair position (PIL uses (x, y) coordinates)
@@ -256,7 +259,7 @@ class ImageViewer(App):
             draw.line([(x, 0), (x, height - 1)], fill=(255, 0, 0, alpha), width=1)
         
         # Composite the overlay onto the original image
-        result = Image.alpha_composite(pil_image, overlay)
+        result = PILImage.alpha_composite(pil_image, overlay)
         return result
     
     def _update_display(self):
@@ -269,21 +272,17 @@ class ImageViewer(App):
                 slice_2d, self.window_center, self.window_width
             )
             
-            # Create Pixels object for rich-pixels
-            # Convert to PIL Image first
-            from PIL import Image
-            pil_image = Image.fromarray(display_array, mode='L')  # 'L' for grayscale
+            # Convert to PIL Image
+            from PIL import Image as PILImage
+            pil_image = PILImage.fromarray(display_array, mode='L')  # 'L' for grayscale
             
             # Add crosshair overlay if in crosshair mode
             if self.mode == "crosshair":
                 pil_image = self._add_crosshair_overlay(pil_image)
             
-            pixels = Pixels.from_image(pil_image)
-            
-            # Update image container
-            container = self.query_one("#image_container", Container)
-            container.remove_children()
-            container.mount(Static(pixels))
+            # Update textual-image widget
+            image_widget = self.query_one("#image_display", Image)
+            image_widget.image = pil_image
             
             self._update_status()
             
