@@ -72,12 +72,20 @@ class DimensionSelectionScreen(Screen):
     
     def action_set_x(self):
         """Set selected dimension as X axis."""
-        self.new_x = self.selected_dim
+        if self.selected_dim == self.new_y:
+            # If selected dim is already Y, swap X and Y
+            self.new_x, self.new_y = self.new_y, self.new_x
+        else:
+            self.new_x = self.selected_dim
         self.query_one("#dimensions", Static).update(self._get_dimension_text())
     
     def action_set_y(self):
         """Set selected dimension as Y axis."""
-        self.new_y = self.selected_dim
+        if self.selected_dim == self.new_x:
+            # If selected dim is already X, swap X and Y
+            self.new_x, self.new_y = self.new_y, self.new_x
+        else:
+            self.new_y = self.selected_dim
         self.query_one("#dimensions", Static).update(self._get_dimension_text())
     
     def action_confirm(self):
@@ -152,6 +160,7 @@ class ImageViewer(App):
         self.mode = "normal"  # normal, crosshair, window_level
         self.crosshair_x = 0
         self.crosshair_y = 0
+        self.crosshair_opacity = 0.5
         
     def compose(self) -> ComposeResult:
         """Create the main interface."""
@@ -218,6 +227,38 @@ class ImageViewer(App):
         
         return slice_2d
     
+    def _add_crosshair_overlay(self, pil_image):
+        """Add red crosshair overlay to the PIL image."""
+        from PIL import Image, ImageDraw
+        
+        # Convert to RGBA for transparency support
+        if pil_image.mode != 'RGBA':
+            pil_image = pil_image.convert('RGBA')
+        
+        # Create a transparent overlay
+        overlay = Image.new('RGBA', pil_image.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        
+        # Calculate crosshair position (PIL uses (x, y) coordinates)
+        width, height = pil_image.size
+        x = self.crosshair_x
+        y = self.crosshair_y
+        
+        # Ensure crosshair is within bounds
+        if 0 <= x < width and 0 <= y < height:
+            # Calculate alpha value (0-255)
+            alpha = int(self.crosshair_opacity * 255)
+            
+            # Draw horizontal line
+            draw.line([(0, y), (width - 1, y)], fill=(255, 0, 0, alpha), width=1)
+            
+            # Draw vertical line  
+            draw.line([(x, 0), (x, height - 1)], fill=(255, 0, 0, alpha), width=1)
+        
+        # Composite the overlay onto the original image
+        result = Image.alpha_composite(pil_image, overlay)
+        return result
+    
     def _update_display(self):
         """Update the image display."""
         try:
@@ -232,6 +273,11 @@ class ImageViewer(App):
             # Convert to PIL Image first
             from PIL import Image
             pil_image = Image.fromarray(display_array, mode='L')  # 'L' for grayscale
+            
+            # Add crosshair overlay if in crosshair mode
+            if self.mode == "crosshair":
+                pil_image = self._add_crosshair_overlay(pil_image)
+            
             pixels = Pixels.from_image(pil_image)
             
             # Update image container
@@ -267,6 +313,7 @@ class ImageViewer(App):
         # Mode-specific info
         if self.mode == "crosshair":
             status_parts.append(f"Crosshair: ({self.crosshair_x}, {self.crosshair_y})")
+            status_parts.append(f"Opacity: {self.crosshair_opacity:.1f}")
             # Get intensity value at crosshair
             slice_2d = self._get_current_slice()
             if 0 <= self.crosshair_y < slice_2d.shape[0] and 0 <= self.crosshair_x < slice_2d.shape[1]:
@@ -277,7 +324,7 @@ class ImageViewer(App):
         if self.mode == "normal":
             keys = "q:Quit | ↑↓/jk:Slice | t:Dims | c:Crosshair | w:W/L"
         elif self.mode == "crosshair":
-            keys = "ESC:Exit | ↑↓←→/hjkl:Move crosshair"
+            keys = "ESC:Exit | ↑↓←→/hjkl:Move crosshair | Shift+↑↓/jk:Opacity"
         elif self.mode == "window_level":
             keys = "ESC:Exit | ↑↓/jk:Window | ←→/hl:Level"
         else:
@@ -358,6 +405,12 @@ class ImageViewer(App):
             elif event.key in ["right", "l"]:
                 slice_2d = self._get_current_slice()
                 self.crosshair_x = min(slice_2d.shape[1] - 1, self.crosshair_x + 1)
+                self._update_display()
+            elif event.key in ["shift+up", "shift+k"]:
+                self.crosshair_opacity = min(1.0, self.crosshair_opacity + 0.1)
+                self._update_display()
+            elif event.key in ["shift+down", "shift+j"]:
+                self.crosshair_opacity = max(0.1, self.crosshair_opacity - 0.1)
                 self._update_display()
         elif self.mode == "window_level":
             if event.key in ["left", "h"]:
