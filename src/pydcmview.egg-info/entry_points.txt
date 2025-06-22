@@ -1,0 +1,2 @@
+[console_scripts]
+pydcmview = pydcmview.main:main

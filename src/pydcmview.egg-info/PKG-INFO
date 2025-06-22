@@ -1,0 +1,88 @@
+Metadata-Version: 2.4
+Name: pydcmview
+Version: 0.1.0
+Summary: Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats
+Author: PyDCMView Contributors
+Project-URL: Homepage, https://github.com/yourusername/pydcmview
+Project-URL: Repository, https://github.com/yourusername/pydcmview
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Healthcare Industry
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
+Classifier: Topic :: Scientific/Engineering :: Visualization
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: textual>=0.70.0
+Requires-Dist: rich-pixels>=2.1.0
+Requires-Dist: SimpleITK>=2.3.0
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: pydicom>=2.3.0
+Requires-Dist: Pillow>=8.0.0
+
+# PyDCMView
+
+Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats.
+
+## Installation
+
+```bash
+pip install -e .
+```
+
+## Usage
+
+```bash
+pydcmview <path_to_image_file_or_dicom_directory>
+```
+
+## Features
+
+- Support for DICOM, NRRD, and Nifti formats
+- 2D slice viewing of N-dimensional images
+- Slice navigation with arrow keys or vim motion keys (j/k)
+- Dimension selection menu (t key) for choosing display axes
+- Crosshair mode (c key) with pixel position and intensity display
+- Window/level adjustment mode (w key)
+- Status bar showing current image information and available keys
+
+## Key Bindings
+
+### Normal Mode
+- `q`: Quit application
+- `↑/↓` or `j/k`: Navigate through slices
+- `t`: Open dimension selection menu
+- `c`: Enter crosshair mode
+- `w`: Enter window/level mode
+
+### Dimension Selection Menu
+- `↑/↓` or `j/k`: Navigate dimensions
+- `x`: Assign dimension to X-axis
+- `y`: Assign dimension to Y-axis
+- `Enter`: Confirm selection
+- `Esc`: Cancel
+
+### Crosshair Mode
+- `↑/↓/←/→` or `h/j/k/l`: Move crosshair
+- `Esc`: Exit crosshair mode
+
+### Window/Level Mode
+- `↑/↓` or `j/k`: Adjust window width
+- `←/→` or `h/l`: Adjust window center (level)
+- `Esc`: Exit window/level mode
+
+## Requirements
+
+- Python 3.8+
+- textual>=0.70.0
+- rich-pixels>=2.1.0
+- SimpleITK>=2.3.0
+- numpy>=1.21.0
+- pydicom>=2.3.0
