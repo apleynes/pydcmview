@@ -267,6 +267,12 @@ class ImageViewer(App):
         else:
             slice_2d = self.array
         
+        # Apply flipping if any dimensions are flipped
+        if self.display_x in self.dim_flipped:
+            slice_2d = np.flip(slice_2d, axis=1)  # Flip along x-axis (columns)
+        if self.display_y in self.dim_flipped:
+            slice_2d = np.flip(slice_2d, axis=0)  # Flip along y-axis (rows)
+        
         return slice_2d
     
     def _get_dimension_text(self):
