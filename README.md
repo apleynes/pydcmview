@@ -1,6 +1,6 @@
 # PyDCMView
 
-Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats.
+Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high-quality graphics rendering.
 
 ## Installation
 
@@ -16,32 +16,38 @@ pydcmview <path_to_image_file_or_dicom_directory>
 
 ## Features
 
-- Support for DICOM, NRRD, and Nifti formats
-- 2D slice viewing of N-dimensional images
-- Slice navigation with arrow keys or vim motion keys (j/k)
-- Dimension selection menu (t key) for choosing display axes
-- Crosshair mode (c key) with pixel position and intensity display
-- Window/level adjustment mode (w key)
-- Status bar showing current image information and available keys
+- **Format Support**: DICOM, NRRD, and Nifti formats
+- **High-Quality Rendering**: Uses textual-image with Sixel and Kitty graphics protocols for superior image quality
+- **2D Slice Viewing**: Navigate through N-dimensional images slice by slice
+- **Interactive Dimension Selection**: Overlay-based dimension selection with axis assignment and flipping
+- **Zoom Controls**: Zoom in/out functionality with adjustable zoom levels (0.1x to 5.0x)
+- **Crosshair Mode**: Interactive crosshair with adjustable opacity and pixel intensity display
+- **Window/Level Adjustment**: Real-time contrast and brightness control
+- **Smart Navigation**: Arrow keys and vim motion keys supported throughout
+- **Comprehensive Status Bar**: Real-time display of image info, coordinates, and available commands
 
 ## Key Bindings
 
 ### Normal Mode
 - `q`: Quit application
 - `↑/↓` or `j/k`: Navigate through slices
-- `t`: Open dimension selection menu
+- `t`: Toggle dimension selection overlay
 - `c`: Enter crosshair mode
 - `w`: Enter window/level mode
+- `+`: Zoom in (increase image size)
+- `-`: Zoom out (decrease image size)
 
-### Dimension Selection Menu
+### Dimension Selection Overlay
 - `↑/↓` or `j/k`: Navigate dimensions
-- `x`: Assign dimension to X-axis
-- `y`: Assign dimension to Y-axis
-- `Enter`: Confirm selection
-- `Esc`: Cancel
+- `x`: Assign dimension to X-axis (swaps if already assigned to Y)
+- `y`: Assign dimension to Y-axis (swaps if already assigned to X)  
+- `f`: Toggle flip for selected dimension (marked with *)
+- `Enter`: Confirm and apply changes
+- `Esc`: Cancel and return to normal mode
 
 ### Crosshair Mode
-- `↑/↓/←/→` or `h/j/k/l`: Move crosshair
+- `↑/↓/←/→` or `h/j/k/l`: Move crosshair position
+- `Shift+↑/↓` or `Shift+j/k`: Adjust crosshair opacity
 - `Esc`: Exit crosshair mode
 
 ### Window/Level Mode
@@ -49,12 +55,61 @@ pydcmview <path_to_image_file_or_dicom_directory>
 - `←/→` or `h/l`: Adjust window center (level)
 - `Esc`: Exit window/level mode
 
+## Technical Details
+
+### Rendering Engine
+- **Primary**: textual-image library with Terminal Graphics Protocol support
+- **Fallback**: Unicode block characters for broader terminal compatibility
+- **Graphics Protocols**: Sixel (xterm, mintty) and Kitty graphics for high-resolution display
+
+### Zoom Implementation
+- Nearest-neighbor interpolation for medical image integrity
+- Crosshair position automatically scales with zoom level
+- Real-time zoom level display in status bar
+
+### Dimension Management
+- Dynamic axis assignment for N-dimensional data
+- Independent dimension flipping with visual indicators
+- Automatic slice axis calculation for 3D+ datasets
+
 ## Requirements
 
 - Python 3.8+
 - textual>=0.70.0
-- rich-pixels>=2.1.0
+- textual-image>=0.3.0 (replaces rich-pixels for better graphics)
 - SimpleITK>=2.3.0
 - numpy>=1.21.0
 - pydicom>=2.3.0
 - Pillow>=8.0.0
+
+## Recent Updates
+
+### Graphics Engine Upgrade
+- Migrated from rich-pixels to textual-image for superior rendering quality
+- Added support for Sixel and Kitty terminal graphics protocols
+- Maintained backward compatibility with Unicode block rendering
+
+### Enhanced Interaction
+- Converted dimension selection from modal screen to overlay interface
+- Added zoom functionality with +/- key controls
+- Implemented dimension flipping with visual feedback
+- Enhanced crosshair with adjustable opacity controls
+
+### UI/UX Improvements
+- Real-time status bar updates with zoom level and opacity display
+- Context-sensitive key binding hints
+- Smooth overlay transitions with semi-transparent backgrounds
+- Improved dimension swapping logic for intuitive axis assignment
+
+## Terminal Compatibility
+
+**Best Experience:**
+- Kitty terminal (full graphics protocol support)
+- iTerm2 (with graphics support)
+- xterm with Sixel support
+
+**Good Experience:**
+- Most modern terminals (Unicode block fallback)
+- Windows Terminal
+- GNOME Terminal
+- Terminal.app (macOS)

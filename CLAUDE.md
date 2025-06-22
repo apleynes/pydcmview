@@ -12,7 +12,7 @@ The project is to create a terminal-based medical image viewer. The following ar
 
 The following libraries will be used for UI/UX:
 1. textual
-2. rich-pixels -- image display in textual
+2. textual-image -- image display in textual
 
 The SimpleITK library will be used for handling data I/O. NumPy will be used for array data types and manipulation.
 
