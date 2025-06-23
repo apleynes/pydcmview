@@ -9,8 +9,9 @@ from textual.containers import Container
 from textual.widgets import Static
 from textual.binding import Binding
 from textual.screen import ModalScreen
-from textual_image.widget import Image
+from textual_image.widget import Image, HalfcellImage, UnicodeImage
 from rich.text import Text
+import os
 
 from .image_loader import ImageLoader
 from .colormap import ColorMapManager
@@ -327,11 +328,35 @@ class ImageViewer(App):
         # Colormap state
         self.colormap_manager = ColorMapManager()
         self.current_colormap = "Grayscale"
+        # Image display mode detection
+        self.use_unicode_fallback = self._detect_ssh_or_limited_terminal()
 
     def compose(self) -> ComposeResult:
         """Create the main interface."""
-        yield Container(Image("", id="image_display"), id="image_container")
+        if self.use_unicode_fallback:
+            # Use HalfcellImage for better Unicode block rendering over SSH
+            yield Container(HalfcellImage("", id="image_display"), id="image_container")
+        else:
+            yield Container(Image("", id="image_display"), id="image_container")
         yield Container(Static("Loading...", id="status"), id="status_bar")
+
+    def _detect_ssh_or_limited_terminal(self) -> bool:
+        """Detect if we're in SSH or a terminal that can't display images properly."""
+        # Check for SSH environment
+        if os.environ.get('SSH_CLIENT') or os.environ.get('SSH_TTY'):
+            return True
+        
+        # Check for limited terminal capabilities
+        term = os.environ.get('TERM', '').lower()
+        if 'screen' in term or 'tmux' in term:
+            return True
+            
+        # Check if COLORTERM is not set to advanced modes
+        colorterm = os.environ.get('COLORTERM', '').lower()
+        if colorterm not in ['truecolor', '24bit']:
+            return True
+            
+        return False
 
     def on_mount(self):
         """Initialize the application."""
@@ -466,8 +491,8 @@ class ImageViewer(App):
             if self.mode == "crosshair":
                 pil_image = self._add_crosshair_overlay(pil_image)
 
-            # Update textual-image widget
-            image_widget = self.query_one("#image_display", Image)
+            # Update image widget (either HalfcellImage or regular Image)
+            image_widget = self.query_one("#image_display")
             image_widget.image = pil_image
 
             self._update_status()
@@ -502,6 +527,12 @@ class ImageViewer(App):
 
         # Colormap
         status_parts.append(f"Colormap: {self.current_colormap}")
+
+        # Display mode
+        if self.use_unicode_fallback:
+            status_parts.append("Display: Unicode")
+        else:
+            status_parts.append("Display: Graphics")
 
         # Mode-specific info
         if self.mode == "crosshair":
