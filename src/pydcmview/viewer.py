@@ -13,6 +13,7 @@ from textual_image.widget import Image
 from rich.text import Text
 
 from .image_loader import ImageLoader
+from .colormap import ColorMapManager
 
 
 class DimensionSelectionScreen(ModalScreen[dict]):
@@ -143,6 +144,136 @@ class DimensionSelectionScreen(ModalScreen[dict]):
         self.dismiss(None)
 
 
+class ColormapSelectionScreen(ModalScreen[str]):
+    """Modal screen for colormap selection."""
+    
+    CSS = """
+    ColormapSelectionScreen {
+        align: center middle;
+    }
+    
+    #colormap_dialog {
+        width: 80;
+        height: auto;
+        background: $surface;
+        border: solid $primary;
+        padding: 1;
+    }
+    
+    #colormap_title {
+        text-align: center;
+        margin: 1;
+        color: $text;
+    }
+    
+    #colormap_list {
+        margin: 1;
+        min-height: 15;
+    }
+    
+    #colormap_help {
+        text-align: center;
+        margin: 1;
+        color: $text-muted;
+    }
+    """
+    
+    BINDINGS = [
+        Binding("escape", "dismiss", "Cancel"),
+        Binding("up,k", "move_up", "Move up"),
+        Binding("down,j", "move_down", "Move down"),
+        Binding("enter", "confirm", "Confirm"),
+    ]
+    
+    def __init__(self, current_colormap: str):
+        super().__init__()
+        self.colormap_manager = ColorMapManager()
+        self.colormap_names = self.colormap_manager.get_names()
+        self.selected = 0
+        self.current_colormap = current_colormap
+        
+        # Set selected to current colormap
+        if current_colormap in self.colormap_names:
+            self.selected = self.colormap_names.index(current_colormap)
+        
+    def compose(self) -> ComposeResult:
+        yield Container(
+            Static("Select Colormap", id="colormap_title"),
+            Static("", id="colormap_list"),
+            Static(
+                "Use ↑↓/jk to navigate, Enter to confirm, Esc to cancel",
+                id="colormap_help"
+            ),
+            id="colormap_dialog"
+        )
+    
+    def on_mount(self):
+        self._update_colormap_list()
+    
+    def _update_colormap_list(self):
+        """Update the colormap list display with previews."""
+        from textual_image.widget import Image as TextualImage
+        
+        text = Text()
+        for i, name in enumerate(self.colormap_names):
+            prefix = "→ " if i == self.selected else "  "
+            current_marker = " [CURRENT]" if name == self.current_colormap else ""
+            
+            # Create a simple text representation of the colormap
+            # We'll show the colormap name with a visual indicator
+            line = f"{prefix}{name}{current_marker}\n"
+            
+            if i == self.selected:
+                text.append(line, style="bold yellow")
+            else:
+                text.append(line)
+            
+            # Add a simple color preview using text characters
+            if i < len(self.colormap_names):
+                colormap = self.colormap_manager.get_colormap(name)
+                # Create a simple gradient preview using block characters
+                preview = "  "
+                for j in range(16):  # 16 character gradient
+                    intensity = int(j * 255 / 15)
+                    rgb = colormap._lut[intensity]
+                    # Convert RGB to approximate grayscale for text display
+                    gray = int(0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2])
+                    # Use different characters for different intensities
+                    if gray < 64:
+                        preview += "█"
+                    elif gray < 128:
+                        preview += "▓"
+                    elif gray < 192:
+                        preview += "▒"
+                    else:
+                        preview += "░"
+                
+                preview += "\n"
+                if i == self.selected:
+                    text.append(preview, style="bold")
+                else:
+                    text.append(preview)
+        
+        self.query_one("#colormap_list", Static).update(text)
+    
+    def action_move_up(self):
+        self.selected = max(0, self.selected - 1)
+        self._update_colormap_list()
+        
+    def action_move_down(self):
+        self.selected = min(len(self.colormap_names) - 1, self.selected + 1)
+        self._update_colormap_list()
+        
+    def action_confirm(self):
+        """Confirm selection and return selected colormap name."""
+        selected_name = self.colormap_names[self.selected]
+        self.dismiss(selected_name)
+        
+    def action_dismiss(self):
+        """Cancel without changes."""
+        self.dismiss(None)
+
+
 class ImageViewer(App):
     """Main image viewer application."""
 
@@ -164,7 +295,8 @@ class ImageViewer(App):
         Binding("up,k", "slice_up", "Previous slice"),
         Binding("down,j", "slice_down", "Next slice"),
         Binding("t", "toggle_dimensions", "Toggle dimensions"),
-        Binding("c", "crosshair_mode", "Crosshair mode"),
+        Binding("c", "colormap_mode", "Colormap selection"),
+        Binding("h", "crosshair_mode", "Crosshair mode"),
         Binding("w", "window_level_mode", "Window/Level mode"),
         Binding("plus", "zoom_in", "Zoom in"),
         Binding("minus", "zoom_out", "Zoom out"),
@@ -192,6 +324,9 @@ class ImageViewer(App):
         self.dim_new_x = None
         self.dim_new_y = None
         self.dim_flipped = set()  # Set of flipped dimensions
+        # Colormap state
+        self.colormap_manager = ColorMapManager()
+        self.current_colormap = "Grayscale"
 
     def compose(self) -> ComposeResult:
         """Create the main interface."""
@@ -310,10 +445,13 @@ class ImageViewer(App):
                 slice_2d, self.window_center, self.window_width
             )
 
+            # Apply colormap
+            rgb_array = self.colormap_manager.apply_colormap(display_array, self.current_colormap)
+
             # Convert to PIL Image
             from PIL import Image as PILImage
 
-            pil_image = PILImage.fromarray(display_array, mode="L")  # 'L' for grayscale
+            pil_image = PILImage.fromarray(rgb_array, mode="RGB")  # 'RGB' for color
 
             # Apply zoom if not 1.0
             if self.zoom_level != 1.0:
@@ -362,6 +500,9 @@ class ImageViewer(App):
         # Zoom level
         status_parts.append(f"Zoom: {self.zoom_level:.1f}x")
 
+        # Colormap
+        status_parts.append(f"Colormap: {self.current_colormap}")
+
         # Mode-specific info
         if self.mode == "crosshair":
             status_parts.append(f"Crosshair: ({self.crosshair_x}, {self.crosshair_y})")
@@ -377,7 +518,7 @@ class ImageViewer(App):
 
         # Key bindings based on mode
         if self.mode == "normal":
-            keys = "q:Quit | ↑↓/jk:Slice | t:Dims | c:Crosshair | w:W/L | +/- :Zoom"
+            keys = "q:Quit | ↑↓/jk:Slice | t:Dims | c:Colormap | h:Crosshair | w:W/L | +/-:Zoom"
         elif self.mode == "crosshair":
             keys = "ESC:Exit | ↑↓←→/hjkl:Move crosshair | Shift+↑↓/jk:Opacity"
         elif self.mode == "window_level":
@@ -442,6 +583,17 @@ class ImageViewer(App):
                 self.dim_flipped
             )
             self.push_screen(modal, handle_dimension_result)
+
+    def action_colormap_mode(self):
+        """Show colormap selection modal."""
+        if self.mode == "normal":
+            def handle_colormap_result(result: str | None):
+                if result:
+                    self.current_colormap = result
+                    self._update_display()
+            
+            modal = ColormapSelectionScreen(self.current_colormap)
+            self.push_screen(modal, handle_colormap_result)
 
     def action_crosshair_mode(self):
         """Toggle crosshair mode."""
