@@ -100,6 +100,12 @@ class ColorMapManager:
             (255, 255, 255) # White
         ])
         
+        # Inverse Grayscale
+        colormaps['Inverse Gray'] = ColorMap('Inverse Gray', [
+            (255, 255, 255), # White
+            (0, 0, 0)        # Black
+        ])
+        
         # Hot (medical thermal)
         colormaps['Hot'] = ColorMap('Hot', [
             (0, 0, 0),       # Black

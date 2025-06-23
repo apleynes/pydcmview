@@ -280,10 +280,14 @@ class ImageViewer(App):
         Binding("q", "quit", "Quit"),
         Binding("up,k", "slice_up", "Previous slice"),
         Binding("down,j", "slice_down", "Next slice"),
+        Binding("w", "scroll_up", "Scroll up"),
+        Binding("a", "scroll_left", "Scroll left"),
+        Binding("s", "scroll_down", "Scroll down"),
+        Binding("d", "scroll_right", "Scroll right"),
         Binding("t", "toggle_dimensions", "Toggle dimensions"),
         Binding("c", "colormap_mode", "Colormap selection"),
         Binding("h", "crosshair_mode", "Crosshair mode"),
-        Binding("w", "window_level_mode", "Window/Level mode"),
+        Binding("W", "window_level_mode", "Window/Level mode"),
         Binding("[", "zoom_out", "Zoom out"),
         Binding("]", "zoom_in", "Zoom in"),
     ]
@@ -305,6 +309,9 @@ class ImageViewer(App):
         self.crosshair_y = 0
         self.crosshair_opacity = 0.5
         self.zoom_level = 1.0
+        # Scroll offsets for WASD navigation
+        self.scroll_x = 0
+        self.scroll_y = 0
         # Dimension selection state
         self.dim_selected = 0
         self.dim_new_x = None
@@ -410,6 +417,28 @@ class ImageViewer(App):
 
         return slice_2d
 
+    def _constrain_scroll(self):
+        """Constrain scroll offsets to stay within image bounds."""
+        try:
+            slice_2d = self._get_current_slice()
+            
+            # Calculate maximum scroll based on zoomed image size
+            zoomed_height = int(slice_2d.shape[0] * self.zoom_level)
+            zoomed_width = int(slice_2d.shape[1] * self.zoom_level)
+            
+            # Get current display size (we'll use original image size as reference)
+            max_scroll_x = max(0, zoomed_width - slice_2d.shape[1])
+            max_scroll_y = max(0, zoomed_height - slice_2d.shape[0])
+            
+            # Constrain scroll offsets
+            self.scroll_x = max(0, min(self.scroll_x, max_scroll_x))
+            self.scroll_y = max(0, min(self.scroll_y, max_scroll_y))
+            
+        except Exception:
+            # If there's any issue, reset scroll to safe values
+            self.scroll_x = 0
+            self.scroll_y = 0
+
     def _add_crosshair_overlay(self, pil_image):
         """Add red crosshair overlay to the PIL image."""
         from PIL import Image as PILImage, ImageDraw
@@ -472,6 +501,16 @@ class ImageViewer(App):
                     (new_width, new_height), PILImage.Resampling.NEAREST
                 )
 
+            # Apply scroll offset by cropping the image
+            if self.scroll_x > 0 or self.scroll_y > 0:
+                width, height = pil_image.size
+                left = min(self.scroll_x, width - 1)
+                top = min(self.scroll_y, height - 1)
+                right = width
+                bottom = height
+                if left < right and top < bottom:
+                    pil_image = pil_image.crop((left, top, right, bottom))
+
             # Add crosshair overlay if in crosshair mode
             if self.mode == "crosshair":
                 pil_image = self._add_crosshair_overlay(pil_image)
@@ -510,6 +549,10 @@ class ImageViewer(App):
         # Zoom level
         status_parts.append(f"Zoom: {self.zoom_level:.1f}x")
 
+        # Scroll offset
+        if self.scroll_x > 0 or self.scroll_y > 0:
+            status_parts.append(f"Scroll: ({self.scroll_x}, {self.scroll_y})")
+
         # Colormap
         status_parts.append(f"Colormap: {self.current_colormap}")
 
@@ -534,7 +577,7 @@ class ImageViewer(App):
 
         # Key bindings based on mode
         if self.mode == "normal":
-            keys = "q:Quit | ↑↓/jk:Slice | t:Dims | c:Colormap | h:Crosshair | w:W/L | []:Zoom"
+            keys = "q:Quit | ↑↓/jk:Slice | wasd:Scroll | t:Dims | c:Colormap | h:Crosshair | Shift+w:W/L | []:Zoom"
         elif self.mode == "crosshair":
             keys = "ESC:Exit | ↑↓←→/hjkl:Move crosshair | Shift+↑↓/jk:Opacity"
         elif self.mode == "window_level":
@@ -625,13 +668,67 @@ class ImageViewer(App):
     def action_zoom_in(self):
         """Zoom in the image."""
         if self.mode == "normal":
-            self.zoom_level = min(5.0, self.zoom_level * 1.2)
+            old_zoom = self.zoom_level
+            self.zoom_level = min(20.0, self.zoom_level * 1.2)
+            zoom_factor = self.zoom_level / old_zoom
+            
+            # Scale scroll offset proportionally to maintain view position
+            self.scroll_x = int(self.scroll_x * zoom_factor)
+            self.scroll_y = int(self.scroll_y * zoom_factor)
+            
+            # Check bounds and constrain scroll
+            self._constrain_scroll()
             self._update_display()
 
     def action_zoom_out(self):
         """Zoom out the image."""
         if self.mode == "normal":
-            self.zoom_level = max(0.1, self.zoom_level / 1.2)
+            old_zoom = self.zoom_level
+            self.zoom_level = max(0.01, self.zoom_level / 1.2)
+            zoom_factor = self.zoom_level / old_zoom
+            
+            # Scale scroll offset proportionally to maintain view position
+            self.scroll_x = int(self.scroll_x * zoom_factor)
+            self.scroll_y = int(self.scroll_y * zoom_factor)
+            
+            # Check bounds and constrain scroll
+            self._constrain_scroll()
+            self._update_display()
+
+    def action_scroll_up(self):
+        """Scroll image up (WASD navigation)."""
+        if self.mode == "normal":
+            slice_2d = self._get_current_slice()
+            scroll_step = max(1, int(slice_2d.shape[0] * 0.05 * self.zoom_level))
+            self.scroll_y = max(0, self.scroll_y - scroll_step)
+            self._constrain_scroll()
+            self._update_display()
+
+    def action_scroll_down(self):
+        """Scroll image down (WASD navigation)."""
+        if self.mode == "normal":
+            slice_2d = self._get_current_slice()
+            scroll_step = max(1, int(slice_2d.shape[0] * 0.05 * self.zoom_level))
+            self.scroll_y += scroll_step
+            self._constrain_scroll()
+            self._update_display()
+
+    def action_scroll_left(self):
+        """Scroll image left (WASD navigation)."""
+        if self.mode == "normal":
+            slice_2d = self._get_current_slice()
+            scroll_step = max(1, int(slice_2d.shape[1] * 0.05 * self.zoom_level))
+            self.scroll_x = max(0, self.scroll_x - scroll_step)
+            self._constrain_scroll()
+            self._update_display()
+
+    def action_scroll_right(self):
+        """Scroll image right (WASD navigation)."""
+        if self.mode == "normal":
+            slice_2d = self._get_current_slice()
+            scroll_step = max(1, int(slice_2d.shape[1] * 0.05 * self.zoom_level))
+            self.scroll_x += scroll_step
+            self._constrain_scroll()
             self._update_display()
 
     def on_key(self, event):

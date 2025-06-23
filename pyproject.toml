@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pydcmview"
-version = "0.1.0"
+version = "0.1.2"
 description = "Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high-quality graphics rendering"
 authors = [{name = "Andrew P. Leynes", email = "19675801+apleynes@users.noreply.github.com"}]
 readme = "README.md"
