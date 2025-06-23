@@ -20,9 +20,11 @@ pydcmview <path_to_image_file_or_dicom_directory>
 - **High-Quality Rendering**: Uses textual-image with Sixel and Kitty graphics protocols for superior image quality
 - **2D Slice Viewing**: Navigate through N-dimensional images slice by slice
 - **Interactive Dimension Selection**: Overlay-based dimension selection with axis assignment and flipping
-- **Zoom Controls**: Zoom in/out functionality with adjustable zoom levels (0.1x to 5.0x)
+- **WASD Scrolling**: Pan across images with 5% step size, zoom-aware navigation
+- **Zoom Controls**: Zoom in/out functionality with scroll position preservation (0.01x to 20.0x)
 - **Crosshair Mode**: Interactive crosshair with adjustable opacity and pixel intensity display
-- **Window/Level Adjustment**: Real-time contrast and brightness control
+- **Window/Level Adjustment**: Percentage-based contrast and brightness control (1% and 5% increments)
+- **Colormap Selection**: Multiple colormap options for enhanced visualization
 - **Smart Navigation**: Arrow keys and vim motion keys supported throughout
 - **Comprehensive Status Bar**: Real-time display of image info, coordinates, and available commands
 
@@ -31,11 +33,12 @@ pydcmview <path_to_image_file_or_dicom_directory>
 ### Normal Mode
 - `q`: Quit application
 - `↑/↓` or `j/k`: Navigate through slices
+- `w/a/s/d`: Scroll image (up/left/down/right) - 5% of image size per step
 - `t`: Toggle dimension selection overlay
-- `c`: Enter crosshair mode
-- `w`: Enter window/level mode
-- `+`: Zoom in (increase image size)
-- `-`: Zoom out (decrease image size)
+- `c`: Enter colormap selection
+- `h`: Enter crosshair mode
+- `Shift+W`: Enter window/level mode
+- `[/]`: Zoom out/in (preserves scroll position)
 
 ### Dimension Selection Overlay
 - `↑/↓` or `j/k`: Navigate dimensions
@@ -47,12 +50,14 @@ pydcmview <path_to_image_file_or_dicom_directory>
 
 ### Crosshair Mode
 - `↑/↓/←/→` or `h/j/k/l`: Move crosshair position
-- `Shift+↑/↓` or `Shift+j/k`: Adjust crosshair opacity
+- `Shift+↑/↓` or `J/K`: Adjust crosshair opacity
 - `Esc`: Exit crosshair mode
 
 ### Window/Level Mode
-- `↑/↓` or `j/k`: Adjust window width
-- `←/→` or `h/l`: Adjust window center (level)
+- `↑/↓` or `j/k`: Adjust window width (1% of intensity range)
+- `←/→` or `h/l`: Adjust window center/level (1% of intensity range)
+- `Shift+↑/↓` or `J/K`: Adjust window width (5% of intensity range)
+- `Shift+←/→` or `H/L`: Adjust window center/level (5% of intensity range)
 - `Esc`: Exit window/level mode
 
 ## Technical Details
@@ -62,10 +67,11 @@ pydcmview <path_to_image_file_or_dicom_directory>
 - **Fallback**: Unicode block characters for broader terminal compatibility
 - **Graphics Protocols**: Sixel (xterm, mintty) and Kitty graphics for high-resolution display
 
-### Zoom Implementation
-- Nearest-neighbor interpolation for medical image integrity
-- Crosshair position automatically scales with zoom level
-- Real-time zoom level display in status bar
+### Navigation and Zoom
+- **WASD Scrolling**: 5% of image dimensions per step, scaled with zoom level
+- **Zoom Preservation**: Scroll position maintained during zoom operations with bounds checking
+- **Zoom Range**: 0.01x to 20.0x with nearest-neighbor interpolation for medical accuracy
+- **Smart Constraints**: Automatic scroll boundary enforcement to prevent out-of-bounds navigation
 
 ### Dimension Management
 - Dynamic axis assignment for N-dimensional data
@@ -89,11 +95,12 @@ pydcmview <path_to_image_file_or_dicom_directory>
 - Added support for Sixel and Kitty terminal graphics protocols
 - Maintained backward compatibility with Unicode block rendering
 
-### Enhanced Interaction
-- Converted dimension selection from modal screen to overlay interface
-- Added zoom functionality with +/- key controls
-- Implemented dimension flipping with visual feedback
-- Enhanced crosshair with adjustable opacity controls
+### Enhanced Navigation
+- **WASD Scrolling**: Added image panning with percentage-based movement (5% of image size)
+- **Zoom Position Preservation**: Zoom operations now maintain current view position with bounds checking
+- **Improved Window/Level**: Percentage-based adjustments (1% and 5%) relative to image intensity range
+- **Colormap Integration**: Multiple colormap options for enhanced medical image visualization
+- **Extended Zoom Range**: Increased zoom capability from 5.0x to 20.0x maximum
 
 ### UI/UX Improvements
 - Real-time status bar updates with zoom level and opacity display
