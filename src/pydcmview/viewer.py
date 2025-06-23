@@ -19,7 +19,7 @@ from .colormap import ColorMapManager
 
 class DimensionSelectionScreen(ModalScreen[dict]):
     """Modal screen for dimension selection."""
-    
+
     CSS = """
     DimensionSelectionScreen {
         align: center middle;
@@ -50,7 +50,7 @@ class DimensionSelectionScreen(ModalScreen[dict]):
         color: $text-muted;
     }
     """
-    
+
     BINDINGS = [
         Binding("escape", "dismiss", "Cancel"),
         Binding("up,k", "move_up", "Move up"),
@@ -60,7 +60,7 @@ class DimensionSelectionScreen(ModalScreen[dict]):
         Binding("f", "flip_dimension", "Flip"),
         Binding("enter", "confirm", "Confirm"),
     ]
-    
+
     def __init__(self, shape, current_x, current_y, flipped_dims=None):
         super().__init__()
         self.shape = shape
@@ -68,21 +68,21 @@ class DimensionSelectionScreen(ModalScreen[dict]):
         self.new_x = current_x
         self.new_y = current_y
         self.flipped = flipped_dims or set()
-        
+
     def compose(self) -> ComposeResult:
         yield Container(
             Static("Select Display Dimensions", id="dim_title"),
             Static("", id="dim_list"),
             Static(
                 "Use ↑↓/jk to navigate, x/y to assign, f to flip, Enter to confirm, Esc to cancel",
-                id="dim_help"
+                id="dim_help",
             ),
-            id="dim_dialog"
+            id="dim_dialog",
         )
-    
+
     def on_mount(self):
         self._update_dimension_list()
-    
+
     def _update_dimension_list(self):
         """Update the dimension list display."""
         text = Text()
@@ -91,23 +91,23 @@ class DimensionSelectionScreen(ModalScreen[dict]):
             x_marker = " [X]" if i == self.new_x else ""
             y_marker = " [Y]" if i == self.new_y else ""
             flip_marker = " *" if i in self.flipped else ""
-            
+
             line = f"{prefix}Dim {i}: size {size}{x_marker}{y_marker}{flip_marker}\n"
             if i == self.selected:
                 text.append(line, style="bold yellow")
             else:
                 text.append(line)
-        
+
         self.query_one("#dim_list", Static).update(text)
-    
+
     def action_move_up(self):
         self.selected = max(0, self.selected - 1)
         self._update_dimension_list()
-        
+
     def action_move_down(self):
         self.selected = min(len(self.shape) - 1, self.selected + 1)
         self._update_dimension_list()
-        
+
     def action_assign_x(self):
         if self.selected == self.new_y:
             # Swap if currently assigned to Y
@@ -115,7 +115,7 @@ class DimensionSelectionScreen(ModalScreen[dict]):
         else:
             self.new_x = self.selected
         self._update_dimension_list()
-        
+
     def action_assign_y(self):
         if self.selected == self.new_x:
             # Swap if currently assigned to X
@@ -123,23 +123,19 @@ class DimensionSelectionScreen(ModalScreen[dict]):
         else:
             self.new_y = self.selected
         self._update_dimension_list()
-        
+
     def action_flip_dimension(self):
         if self.selected in self.flipped:
             self.flipped.remove(self.selected)
         else:
             self.flipped.add(self.selected)
         self._update_dimension_list()
-        
+
     def action_confirm(self):
         """Confirm selection and return results."""
-        result = {
-            'x': self.new_x,
-            'y': self.new_y,
-            'flipped': self.flipped
-        }
+        result = {"x": self.new_x, "y": self.new_y, "flipped": self.flipped}
         self.dismiss(result)
-        
+
     def action_dismiss(self):
         """Cancel without changes."""
         self.dismiss(None)
@@ -147,7 +143,7 @@ class DimensionSelectionScreen(ModalScreen[dict]):
 
 class ColormapSelectionScreen(ModalScreen[str]):
     """Modal screen for colormap selection."""
-    
+
     CSS = """
     ColormapSelectionScreen {
         align: center middle;
@@ -178,98 +174,87 @@ class ColormapSelectionScreen(ModalScreen[str]):
         color: $text-muted;
     }
     """
-    
+
     BINDINGS = [
         Binding("escape", "dismiss", "Cancel"),
         Binding("up,k", "move_up", "Move up"),
         Binding("down,j", "move_down", "Move down"),
         Binding("enter", "confirm", "Confirm"),
     ]
-    
+
     def __init__(self, current_colormap: str):
         super().__init__()
         self.colormap_manager = ColorMapManager()
         self.colormap_names = self.colormap_manager.get_names()
         self.selected = 0
         self.current_colormap = current_colormap
-        
+
         # Set selected to current colormap
         if current_colormap in self.colormap_names:
             self.selected = self.colormap_names.index(current_colormap)
-        
+
     def compose(self) -> ComposeResult:
         yield Container(
             Static("Select Colormap", id="colormap_title"),
             Static("", id="colormap_list"),
             Static(
                 "Use ↑↓/jk to navigate, Enter to confirm, Esc to cancel",
-                id="colormap_help"
+                id="colormap_help",
             ),
-            id="colormap_dialog"
+            id="colormap_dialog",
         )
-    
+
     def on_mount(self):
         self._update_colormap_list()
-    
+
     def _update_colormap_list(self):
         """Update the colormap list display with previews."""
         from textual_image.widget import Image as TextualImage
-        
+
         text = Text()
         for i, name in enumerate(self.colormap_names):
             prefix = "→ " if i == self.selected else "  "
             current_marker = " [CURRENT]" if name == self.current_colormap else ""
-            
+
             # Create a simple text representation of the colormap
             # We'll show the colormap name with a visual indicator
             line = f"{prefix}{name}{current_marker}\n"
-            
+
             if i == self.selected:
                 text.append(line, style="bold yellow")
             else:
                 text.append(line)
-            
-            # Add a simple color preview using text characters
+
+            # Add a colored preview using text characters
             if i < len(self.colormap_names):
                 colormap = self.colormap_manager.get_colormap(name)
-                # Create a simple gradient preview using block characters
-                preview = "  "
+                # Create a colored gradient preview using block characters
+                preview_text = Text("  ")
                 for j in range(16):  # 16 character gradient
                     intensity = int(j * 255 / 15)
                     rgb = colormap._lut[intensity]
-                    # Convert RGB to approximate grayscale for text display
-                    gray = int(0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2])
-                    # Use different characters for different intensities
-                    if gray < 64:
-                        preview += "█"
-                    elif gray < 128:
-                        preview += "▓"
-                    elif gray < 192:
-                        preview += "▒"
-                    else:
-                        preview += "░"
-                
-                preview += "\n"
-                if i == self.selected:
-                    text.append(preview, style="bold")
-                else:
-                    text.append(preview)
-        
+                    # Convert RGB values to hex color for Rich styling
+                    hex_color = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+                    preview_text.append("█", style=hex_color)
+
+                preview_text.append("\n")
+                text.append(preview_text)
+
         self.query_one("#colormap_list", Static).update(text)
-    
+
     def action_move_up(self):
         self.selected = max(0, self.selected - 1)
         self._update_colormap_list()
-        
+
     def action_move_down(self):
         self.selected = min(len(self.colormap_names) - 1, self.selected + 1)
         self._update_colormap_list()
-        
+
     def action_confirm(self):
         """Confirm selection and return selected colormap name."""
         selected_name = self.colormap_names[self.selected]
         self.dismiss(selected_name)
-        
+
     def action_dismiss(self):
         """Cancel without changes."""
         self.dismiss(None)
@@ -299,8 +284,8 @@ class ImageViewer(App):
         Binding("c", "colormap_mode", "Colormap selection"),
         Binding("h", "crosshair_mode", "Crosshair mode"),
         Binding("w", "window_level_mode", "Window/Level mode"),
-        Binding("plus", "zoom_in", "Zoom in"),
-        Binding("minus", "zoom_out", "Zoom out"),
+        Binding("[", "zoom_out", "Zoom out"),
+        Binding("]", "zoom_in", "Zoom in"),
     ]
 
     def __init__(self, image_path: Path):
@@ -343,19 +328,19 @@ class ImageViewer(App):
     def _detect_ssh_or_limited_terminal(self) -> bool:
         """Detect if we're in SSH or a terminal that can't display images properly."""
         # Check for SSH environment
-        if os.environ.get('SSH_CLIENT') or os.environ.get('SSH_TTY'):
+        if os.environ.get("SSH_CLIENT") or os.environ.get("SSH_TTY"):
             return True
-        
+
         # Check for limited terminal capabilities
-        term = os.environ.get('TERM', '').lower()
-        if 'screen' in term or 'tmux' in term:
+        term = os.environ.get("TERM", "").lower()
+        if "screen" in term or "tmux" in term:
             return True
-            
+
         # Check if COLORTERM is not set to advanced modes
-        colorterm = os.environ.get('COLORTERM', '').lower()
-        if colorterm not in ['truecolor', '24bit']:
+        colorterm = os.environ.get("COLORTERM", "").lower()
+        if colorterm not in ["truecolor", "24bit"]:
             return True
-            
+
         return False
 
     def on_mount(self):
@@ -425,8 +410,6 @@ class ImageViewer(App):
 
         return slice_2d
 
-
-
     def _add_crosshair_overlay(self, pil_image):
         """Add red crosshair overlay to the PIL image."""
         from PIL import Image as PILImage, ImageDraw
@@ -471,7 +454,9 @@ class ImageViewer(App):
             )
 
             # Apply colormap
-            rgb_array = self.colormap_manager.apply_colormap(display_array, self.current_colormap)
+            rgb_array = self.colormap_manager.apply_colormap(
+                display_array, self.current_colormap
+            )
 
             # Convert to PIL Image
             from PIL import Image as PILImage
@@ -549,7 +534,7 @@ class ImageViewer(App):
 
         # Key bindings based on mode
         if self.mode == "normal":
-            keys = "q:Quit | ↑↓/jk:Slice | t:Dims | c:Colormap | h:Crosshair | w:W/L | +/-:Zoom"
+            keys = "q:Quit | ↑↓/jk:Slice | t:Dims | c:Colormap | h:Crosshair | w:W/L | []:Zoom"
         elif self.mode == "crosshair":
             keys = "ESC:Exit | ↑↓←→/hjkl:Move crosshair | Shift+↑↓/jk:Opacity"
         elif self.mode == "window_level":
@@ -591,12 +576,13 @@ class ImageViewer(App):
     def action_toggle_dimensions(self):
         """Show dimension selection modal."""
         if self.mode == "normal":
+
             def handle_dimension_result(result: dict | None):
                 if result:
-                    self.display_x = result['x']
-                    self.display_y = result['y']
-                    self.dim_flipped = result['flipped']
-                    
+                    self.display_x = result["x"]
+                    self.display_y = result["y"]
+                    self.dim_flipped = result["flipped"]
+
                     # Update slice axis
                     if len(self.shape) >= 3:
                         all_axes = set(range(len(self.shape)))
@@ -604,25 +590,23 @@ class ImageViewer(App):
                         remaining_axes = list(all_axes - display_axes)
                         self.slice_axis = remaining_axes[0] if remaining_axes else None
                         self.current_slice = 0  # Reset to first slice
-                    
+
                     self._update_display()
-            
+
             modal = DimensionSelectionScreen(
-                self.shape, 
-                self.display_x, 
-                self.display_y, 
-                self.dim_flipped
+                self.shape, self.display_x, self.display_y, self.dim_flipped
             )
             self.push_screen(modal, handle_dimension_result)
 
     def action_colormap_mode(self):
         """Show colormap selection modal."""
         if self.mode == "normal":
+
             def handle_colormap_result(result: str | None):
                 if result:
                     self.current_colormap = result
                     self._update_display()
-            
+
             modal = ColormapSelectionScreen(self.current_colormap)
             self.push_screen(modal, handle_colormap_result)
 
