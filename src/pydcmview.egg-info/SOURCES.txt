@@ -5,6 +5,7 @@ README.md
 pyproject.toml
 requirements.txt
 src/pydcmview/__init__.py
+src/pydcmview/colormap.py
 src/pydcmview/image_loader.py
 src/pydcmview/main.py
 src/pydcmview/viewer.py

@@ -5,7 +5,7 @@ Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high
 ## Installation
 
 ```bash
-pip install -e .
+pip install pydcmview
 ```
 
 ## Usage
