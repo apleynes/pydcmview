@@ -421,23 +421,31 @@ class ImageViewer(App):
         """Constrain scroll offsets to stay within image bounds."""
         try:
             slice_2d = self._get_current_slice()
-            
+
             # Calculate maximum scroll based on zoomed image size
             zoomed_height = int(slice_2d.shape[0] * self.zoom_level)
             zoomed_width = int(slice_2d.shape[1] * self.zoom_level)
-            
+
             # Get current display size (we'll use original image size as reference)
             max_scroll_x = max(0, zoomed_width - slice_2d.shape[1])
             max_scroll_y = max(0, zoomed_height - slice_2d.shape[0])
-            
+
             # Constrain scroll offsets
             self.scroll_x = max(0, min(self.scroll_x, max_scroll_x))
             self.scroll_y = max(0, min(self.scroll_y, max_scroll_y))
-            
+
         except Exception:
             # If there's any issue, reset scroll to safe values
             self.scroll_x = 0
             self.scroll_y = 0
+
+    def _get_intensity_range(self):
+        """Get the intensity range of the current slice."""
+        try:
+            slice_2d = self._get_current_slice()
+            return float(np.min(slice_2d)), float(np.max(slice_2d))
+        except Exception:
+            return 0.0, 1.0
 
     def _add_crosshair_overlay(self, pil_image):
         """Add red crosshair overlay to the PIL image."""
@@ -581,7 +589,7 @@ class ImageViewer(App):
         elif self.mode == "crosshair":
             keys = "ESC:Exit | ↑↓←→/hjkl:Move crosshair | Shift+↑↓/jk:Opacity"
         elif self.mode == "window_level":
-            keys = "ESC:Exit | ↑↓/jk:Window | ←→/hl:Level"
+            keys = "ESC:Exit | ↑↓/jk:Window(1%) | ←→/hl:Level(1%) | Shift+keys:5%"
         elif self.mode == "dimension_select":
             keys = "ESC:Exit | ↑↓/jk:Navigate | x/y:Assign | f:Flip | Enter:Confirm"
         else:
@@ -599,7 +607,10 @@ class ImageViewer(App):
             self.crosshair_y = max(0, self.crosshair_y - 1)
             self._update_display()
         elif self.mode == "window_level":
-            self.window_width = max(1, self.window_width + 10)
+            min_intensity, max_intensity = self._get_intensity_range()
+            intensity_range = max_intensity - min_intensity
+            increment = max(1, intensity_range * 0.01)  # 1% of intensity range
+            self.window_width = max(1, self.window_width + increment)
             self._update_display()
 
     def action_slice_down(self):
@@ -613,7 +624,10 @@ class ImageViewer(App):
             self.crosshair_y = min(slice_2d.shape[0] - 1, self.crosshair_y + 1)
             self._update_display()
         elif self.mode == "window_level":
-            self.window_width = max(1, self.window_width - 10)
+            min_intensity, max_intensity = self._get_intensity_range()
+            intensity_range = max_intensity - min_intensity
+            increment = max(1, intensity_range * 0.01)  # 1% of intensity range
+            self.window_width = max(1, self.window_width - increment)
             self._update_display()
 
     def action_toggle_dimensions(self):
@@ -671,11 +685,11 @@ class ImageViewer(App):
             old_zoom = self.zoom_level
             self.zoom_level = min(20.0, self.zoom_level * 1.2)
             zoom_factor = self.zoom_level / old_zoom
-            
+
             # Scale scroll offset proportionally to maintain view position
             self.scroll_x = int(self.scroll_x * zoom_factor)
             self.scroll_y = int(self.scroll_y * zoom_factor)
-            
+
             # Check bounds and constrain scroll
             self._constrain_scroll()
             self._update_display()
@@ -686,11 +700,11 @@ class ImageViewer(App):
             old_zoom = self.zoom_level
             self.zoom_level = max(0.01, self.zoom_level / 1.2)
             zoom_factor = self.zoom_level / old_zoom
-            
+
             # Scale scroll offset proportionally to maintain view position
             self.scroll_x = int(self.scroll_x * zoom_factor)
             self.scroll_y = int(self.scroll_y * zoom_factor)
-            
+
             # Check bounds and constrain scroll
             self._constrain_scroll()
             self._update_display()
@@ -789,16 +803,37 @@ class ImageViewer(App):
                 slice_2d = self._get_current_slice()
                 self.crosshair_x = min(slice_2d.shape[1] - 1, self.crosshair_x + 1)
                 self._update_display()
-            elif event.key in ["shift+up", "shift+k"]:
+            elif event.key in ["shift+up", "K"]:
                 self.crosshair_opacity = min(1.0, self.crosshair_opacity + 0.1)
                 self._update_display()
-            elif event.key in ["shift+down", "shift+j"]:
+            elif event.key in ["shift+down", "J"]:
                 self.crosshair_opacity = max(0.1, self.crosshair_opacity - 0.1)
                 self._update_display()
         elif self.mode == "window_level":
+            min_intensity, max_intensity = self._get_intensity_range()
+            intensity_range = max_intensity - min_intensity
+
             if event.key in ["left", "h"]:
-                self.window_center -= 10
+                increment = max(1, intensity_range * 0.01)  # 1% of intensity range
+                self.window_center -= increment
                 self._update_display()
             elif event.key in ["right", "l"]:
-                self.window_center += 10
+                increment = max(1, intensity_range * 0.01)  # 1% of intensity range
+                self.window_center += increment
+                self._update_display()
+            elif event.key in ["shift+left", "H"]:
+                increment = max(1, intensity_range * 0.05)  # 5% of intensity range
+                self.window_center -= increment
+                self._update_display()
+            elif event.key in ["shift+right", "L"]:
+                increment = max(1, intensity_range * 0.05)  # 5% of intensity range
+                self.window_center += increment
+                self._update_display()
+            elif event.key in ["shift+up", "K"]:
+                increment = max(1, intensity_range * 0.05)  # 5% of intensity range
+                self.window_width = max(1, self.window_width + increment)
+                self._update_display()
+            elif event.key in ["shift+down", "J"]:
+                increment = max(1, intensity_range * 0.05)  # 5% of intensity range
+                self.window_width = max(1, self.window_width - increment)
                 self._update_display()
