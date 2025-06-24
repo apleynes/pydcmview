@@ -648,6 +648,10 @@ class ImageViewer(App):
                         self.slice_axis = remaining_axes[0] if remaining_axes else None
                         self.current_slice = 0  # Reset to first slice
 
+                    # Reset scroll offsets to prevent out-of-bounds crop
+                    self.scroll_x = 0
+                    self.scroll_y = 0
+
                     self._update_display()
 
             modal = DimensionSelectionScreen(
@@ -792,6 +796,10 @@ class ImageViewer(App):
                     remaining_axes = list(all_axes - display_axes)
                     self.slice_axis = remaining_axes[0] if remaining_axes else None
                     self.current_slice = 0  # Reset to first slice
+
+                # Reset scroll offsets to prevent out-of-bounds crop
+                self.scroll_x = 0
+                self.scroll_y = 0
 
                 self._hide_dimension_overlay()
                 self._update_display()
