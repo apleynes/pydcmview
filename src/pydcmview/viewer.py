@@ -408,6 +408,41 @@ class ImageViewer(App):
 
         return slice_2d
 
+    def _calculate_max_zoom(self):
+        """Calculate maximum safe zoom level to prevent rendering errors."""
+        try:
+            if self.use_unicode_fallback:
+                return 20.0
+            slice_2d = self._get_current_slice()
+            img_height, img_width = slice_2d.shape
+
+            # Get terminal size from console
+            size = self.app.console.size
+            terminal_width = size.width
+            terminal_height = (
+                size.height - 5
+            )  # Reserve space for status bar and padding
+
+            # textual-image has limits around 255 characters per dimension
+            # We'll use 600 as the limit for better zoom capability
+            max_cell_width = min(600, terminal_width * 3)
+            max_cell_height = min(600, terminal_height * 3)
+
+            # Calculate max zoom based on terminal cell limits
+            # Each cell can represent multiple pixels, but we need to be conservative
+            max_zoom_x = max_cell_width / max(1, img_width / 10)  # Conservative factor
+            max_zoom_y = max_cell_height / max(
+                1, img_height / 10
+            )  # Conservative factor
+
+            # Use the more restrictive limit and cap at maximum zoom
+            max_zoom = min(max_zoom_x, max_zoom_y, 20.0)
+
+            return max(0.1, max_zoom)  # Ensure minimum zoom level
+        except Exception:
+            # Fallback to safe default if calculation fails
+            return 5.0
+
     def _constrain_scroll(self):
         """Constrain scroll offsets to stay within image bounds."""
         try:
@@ -678,7 +713,8 @@ class ImageViewer(App):
         """Zoom in the image."""
         if self.mode == "normal":
             old_zoom = self.zoom_level
-            self.zoom_level = min(20.0, self.zoom_level * 1.2)
+            max_zoom = self._calculate_max_zoom()
+            self.zoom_level = min(max_zoom, self.zoom_level * 1.2)
             zoom_factor = self.zoom_level / old_zoom
 
             # Scale scroll offset proportionally to maintain view position
@@ -693,7 +729,7 @@ class ImageViewer(App):
         """Zoom out the image."""
         if self.mode == "normal":
             old_zoom = self.zoom_level
-            self.zoom_level = max(0.01, self.zoom_level / 1.2)
+            self.zoom_level = max(0.1, self.zoom_level / 1.2)
             zoom_factor = self.zoom_level / old_zoom
 
             # Scale scroll offset proportionally to maintain view position
