@@ -14,6 +14,17 @@ pip install pydcmview
 pydcmview <path_to_image_file_or_dicom_directory>
 ```
 
+When using over remote SSH, I've only gotten advanced graphics rendering to work with [kitty](https://sw.kovidgoyal.net/kitty/) with the following remote SSH command
+```bash
+kitty +kitten ssh <typical_ssh_arguments_here>
+```
+
+e.g., `kitty +kitten ssh -p 6000 my_server_address`
+
+With other remote SSH connections, it falls back to Unicode block rendering. Adjust the terminal font zoom to increase/decrease rendering resolution.
+Each character block represents 2 pixels.
+
+
 ## Features
 
 - **Format Support**: DICOM, NRRD, and Nifti formats
