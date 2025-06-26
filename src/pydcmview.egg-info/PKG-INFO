@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pydcmview
-Version: 0.1.4
+Version: 0.1.5
 Summary: Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high-quality graphics rendering
 Author-email: "Andrew P. Leynes" <19675801+apleynes@users.noreply.github.com>
 License-Expression: MIT
