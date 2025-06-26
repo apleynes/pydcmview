@@ -333,16 +333,7 @@ class ImageViewer(App):
         yield Container(Static("Loading...", id="status"), id="status_bar")
 
     def _detect_ssh_or_limited_terminal(self) -> bool:
-        """Detect if we're in SSH or a terminal that can't display images properly."""
-        # Check for SSH environment
-        if os.environ.get("SSH_CLIENT") or os.environ.get("SSH_TTY"):
-            return True
-
-        # Check for limited terminal capabilities
-        term = os.environ.get("TERM", "").lower()
-        if "screen" in term or "tmux" in term:
-            return True
-
+        """Detect if we're in a terminal that can't display images properly."""
         # Check if COLORTERM is not set to advanced modes
         colorterm = os.environ.get("COLORTERM", "").lower()
         if colorterm not in ["truecolor", "24bit"]:
