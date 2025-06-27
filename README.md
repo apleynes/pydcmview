@@ -2,6 +2,8 @@
 
 Terminal-based medical image viewer for DICOM, NRRD, and Nifti formats with high-quality graphics rendering.
 
+https://github.com/user-attachments/assets/7f71d563-b2c6-47df-b1ac-5c1167eed4c1
+
 ## Installation
 
 ```bash
