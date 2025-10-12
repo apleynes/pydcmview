@@ -9,9 +9,10 @@ from textual.containers import Container
 from textual.widgets import Static
 from textual.binding import Binding
 from textual.screen import ModalScreen
-from textual_image.widget import Image, HalfcellImage, UnicodeImage
+from textual_image.widget import SixelImage, HalfcellImage, TGPImage, UnicodeImage
 from rich.text import Text
 import os
+import sys
 
 from .image_loader import ImageLoader
 from .colormap import ColorMapManager
@@ -209,8 +210,6 @@ class ColormapSelectionScreen(ModalScreen[str]):
 
     def _update_colormap_list(self):
         """Update the colormap list display with previews."""
-        from textual_image.widget import Image as TextualImage
-
         text = Text()
         for i, name in enumerate(self.colormap_names):
             prefix = "→ " if i == self.selected else "  "
@@ -264,13 +263,16 @@ class ImageViewer(App):
     """Main image viewer application."""
 
     CSS = """
-    #image_container {
-        dock: top;
-        height: 1fr;
+    Screen {
+        layout: vertical;
     }
-    
+
+    #image_container {
+        height: 1fr;
+        align: center middle;
+    }
+
     #status_bar {
-        dock: bottom;
         height: 3;
         background: $surface;
     }
@@ -320,26 +322,31 @@ class ImageViewer(App):
         # Colormap state
         self.colormap_manager = ColorMapManager()
         self.current_colormap = "Grayscale"
-        # Image display mode detection
-        self.use_unicode_fallback = self._detect_ssh_or_limited_terminal()
 
     def compose(self) -> ComposeResult:
         """Create the main interface."""
-        if self.use_unicode_fallback:
-            # Use HalfcellImage for better Unicode block rendering over SSH
-            yield Container(HalfcellImage("", id="image_display"), id="image_container")
+        # Manually select widget based on terminal since auto-detection fails in scripts
+        term_program = os.environ.get("TERM_PROGRAM", "").lower()
+        term = os.environ.get("TERM", "").lower()
+
+        # Check for Kitty
+        if os.environ.get("KITTY_WINDOW_ID") or "kitty" in term:
+            ImageWidget = TGPImage
+        # Check for iTerm2 (Sixel-capable)
+        elif "iterm" in term_program:
+            ImageWidget = SixelImage
+        # Check for Mac Terminal (NOT Sixel-capable, use HalfcellImage)
+        elif "apple_terminal" in term_program:
+            ImageWidget = HalfcellImage
+        # Check for other xterm-based terminals (potentially Sixel-capable)
+        elif "xterm" in term:
+            ImageWidget = SixelImage
+        # Default to HalfcellImage
         else:
-            yield Container(Image("", id="image_display"), id="image_container")
+            ImageWidget = HalfcellImage
+
+        yield Container(ImageWidget("", id="image_display"), id="image_container")
         yield Container(Static("Loading...", id="status"), id="status_bar")
-
-    def _detect_ssh_or_limited_terminal(self) -> bool:
-        """Detect if we're in a terminal that can't display images properly."""
-        # Check if COLORTERM is not set to advanced modes
-        colorterm = os.environ.get("COLORTERM", "").lower()
-        if colorterm not in ["truecolor", "24bit"]:
-            return True
-
-        return False
 
     def on_mount(self):
         """Initialize the application."""
@@ -365,7 +372,8 @@ class ImageViewer(App):
                 self.crosshair_x = self.shape[self.display_x] // 2
                 self.crosshair_y = self.shape[self.display_y] // 2
 
-            self._update_display()
+            # Use call_after_refresh to ensure screen is fully active
+            self.call_after_refresh(self._update_display)
 
         except Exception as e:
             self.query_one("#status", Static).update(f"Error: {e}")
@@ -411,8 +419,6 @@ class ImageViewer(App):
     def _calculate_max_zoom(self):
         """Calculate maximum safe zoom level to prevent rendering errors."""
         try:
-            if self.use_unicode_fallback:
-                return 20.0
             slice_2d = self._get_current_slice()
             img_height, img_width = slice_2d.shape
 
@@ -524,7 +530,7 @@ class ImageViewer(App):
             # Convert to PIL Image
             from PIL import Image as PILImage
 
-            pil_image = PILImage.fromarray(rgb_array, mode="RGB")  # 'RGB' for color
+            pil_image = PILImage.fromarray(rgb_array, mode="RGB")
 
             # Apply zoom if not 1.0
             if self.zoom_level != 1.0:
@@ -549,9 +555,28 @@ class ImageViewer(App):
             if self.mode == "crosshair":
                 pil_image = self._add_crosshair_overlay(pil_image)
 
-            # Update image widget (either HalfcellImage or regular Image)
+            # Update image widget
             image_widget = self.query_one("#image_display")
-            image_widget.image = pil_image
+
+            # SixelImage requires file path (based on test_sixel_update.py)
+            if isinstance(image_widget, SixelImage):
+                import tempfile
+                # Save to temp file
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False, dir='/tmp') as tmp:
+                    tmp_path = tmp.name
+                pil_image.save(tmp_path, format='PNG')
+                image_widget.image = tmp_path
+
+                # Clean up old temp file
+                if hasattr(self, '_last_tmp_file') and self._last_tmp_file:
+                    try:
+                        os.unlink(self._last_tmp_file)
+                    except:
+                        pass
+                self._last_tmp_file = tmp_path
+            else:
+                # Other widgets accept PIL Images directly
+                image_widget.image = pil_image
 
             self._update_status()
 
@@ -589,12 +614,6 @@ class ImageViewer(App):
 
         # Colormap
         status_parts.append(f"Colormap: {self.current_colormap}")
-
-        # Display mode
-        if self.use_unicode_fallback:
-            status_parts.append("Display: Unicode")
-        else:
-            status_parts.append("Display: Graphics")
 
         # Mode-specific info
         if self.mode == "crosshair":
