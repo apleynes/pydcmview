@@ -9,10 +9,9 @@ from textual.containers import Container
 from textual.widgets import Static
 from textual.binding import Binding
 from textual.screen import ModalScreen
-from textual_image.widget import SixelImage, HalfcellImage, TGPImage, UnicodeImage
+from textual_image.widget import Image, SixelImage
 from rich.text import Text
 import os
-import sys
 
 from .image_loader import ImageLoader
 from .colormap import ColorMapManager
@@ -325,27 +324,9 @@ class ImageViewer(App):
 
     def compose(self) -> ComposeResult:
         """Create the main interface."""
-        # Manually select widget based on terminal since auto-detection fails in scripts
-        term_program = os.environ.get("TERM_PROGRAM", "").lower()
-        term = os.environ.get("TERM", "").lower()
-
-        # Check for Kitty
-        if os.environ.get("KITTY_WINDOW_ID") or "kitty" in term:
-            ImageWidget = TGPImage
-        # Check for iTerm2 (Sixel-capable)
-        elif "iterm" in term_program:
-            ImageWidget = SixelImage
-        # Check for Mac Terminal (NOT Sixel-capable, use HalfcellImage)
-        elif "apple_terminal" in term_program:
-            ImageWidget = HalfcellImage
-        # Check for other xterm-based terminals (potentially Sixel-capable)
-        elif "xterm" in term:
-            ImageWidget = SixelImage
-        # Default to HalfcellImage
-        else:
-            ImageWidget = HalfcellImage
-
-        yield Container(ImageWidget("", id="image_display"), id="image_container")
+        # Use textual-image's auto-detection (Image class)
+        # Now that CSS dock issue is fixed, auto-detection should work
+        yield Container(Image("", id="image_display"), id="image_container")
         yield Container(Static("Loading...", id="status"), id="status_bar")
 
     def on_mount(self):
