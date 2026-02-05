@@ -8,7 +8,7 @@ A high-quality terminal-based medical image viewer with support for:
 - Overlay-based dimension selection with flipping support
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.6"
 __author__ = "Andrew P. Leynes"
 __email__ = "andrew.leynes@example.com"
 __license__ = "MIT"
