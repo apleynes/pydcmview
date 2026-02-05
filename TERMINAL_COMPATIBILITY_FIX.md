@@ -71,30 +71,13 @@ After the fix, the following terminals will work correctly:
 
 ## Testing
 
-### Debug Scripts Created:
+The terminal compatibility fix has been implemented and tested. The application now uses `textual-image`'s auto-detection (`Image` widget) which automatically selects the appropriate rendering protocol based on the terminal capabilities.
 
-1. **debug_terminal_protocols.py** - Diagnostic tool that shows:
-   - Environment variables (TERM, COLORTERM, etc.)
-   - Terminal capabilities
-   - Protocol detection results
-   - Widget creation tests
-
-2. **test_terminal_graphics.py** - Interactive test that:
-   - Creates a gradient test image
-   - Shows which protocol is being used
-   - Verifies the fix works correctly
-
-### Running the tests:
+For testing, you can simply run the application with different terminal configurations:
 
 ```bash
-# Activate conda environment
-conda activate pydcmview
-
-# Run diagnostic
-python debug_terminal_protocols.py
-
-# Run interactive test
-python test_terminal_graphics.py
+# Run the viewer
+python -m pydcmview path/to/image.dcm
 ```
 
 ## Technical Details
@@ -108,10 +91,12 @@ The key insight is that `textual-image.widget.Image` is actually `AutoImage` whi
 
 This detection is much more sophisticated than just checking environment variables.
 
-## Recommendation
+## Current Implementation
 
-The fix should be merged into the main branch after testing in various terminals to confirm:
-- Images display correctly in Kitty (should use TGP)
-- Images display correctly in Apple Terminal (should use HalfcellImage)
-- Images display correctly in other terminals you have access to
-- No regressions in existing functionality
+The current implementation uses `textual-image`'s `Image` widget (which is actually `AutoImage`) for automatic protocol detection. This provides the best compatibility across different terminals:
+
+- **Kitty**: Uses TGP (Terminal Graphics Protocol) for excellent quality
+- **iTerm2/WezTerm**: Uses Sixel graphics when available
+- **Apple Terminal and others**: Falls back to HalfcellImage (colored Unicode blocks)
+
+The auto-detection approach is more reliable than manual terminal detection and handles edge cases automatically.

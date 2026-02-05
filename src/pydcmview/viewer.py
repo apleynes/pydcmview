@@ -539,7 +539,7 @@ class ImageViewer(App):
             # Update image widget
             image_widget = self.query_one("#image_display")
 
-            # SixelImage requires file path (based on test_sixel_update.py)
+            # SixelImage requires file path
             if isinstance(image_widget, SixelImage):
                 import tempfile
                 # Save to temp file

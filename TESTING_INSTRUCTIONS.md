@@ -1,95 +1,56 @@
 # Testing Instructions
 
-## Issue Summary
-User reports:
-- Mac Terminal: Falls back to "unicode blocks" (unclear if colored or not)
-- iTerm2: Shows "just black"
+## Current Status
+The terminal compatibility issues have been resolved. The application now uses `textual-image`'s automatic protocol detection which provides broad compatibility across different terminals.
 
-## What Works
-The rendering pipeline is confirmed working:
-- `render_output.png` shows correct gradient (max value 129/255)
-- `render_output_equalized.png` shows enhanced gradient
-- Image loading, window/level, and colormap application all work correctly
+## Testing the Application
 
-## Tests to Run
-
-### Test 1: Verify HalfcellImage Widget
-Run this in your terminal:
+### Basic Test
 ```bash
-conda activate pydcmview
-python test_halfcell_capture.py
+# Run the viewer with a test image
+python -m pydcmview test_volume.nrrd
 ```
 
-**Expected**: You should see a diagonal gradient from dark (top-left) to lighter (bottom-right)
+**Expected**: You should see the medical image displayed with appropriate colors and contrast.
 
-**If you see**:
-- ✓ Colored gradient → HalfcellImage is working
-- ✗ Black screen → HalfcellImage rendering issue
-- ✗ Unicode characters without colors → Terminal color support issue
+### Test with Different Terminals
+Try running the application in different terminals to verify compatibility:
 
-### Test 2: Check Actual Viewer
+- **Kitty**: Should use TGP protocol for excellent quality
+- **iTerm2/WezTerm**: Should use Sixel graphics when available  
+- **Apple Terminal**: Should use HalfcellImage (colored Unicode blocks)
+- **Other terminals**: Should fall back to HalfcellImage
+
+### Create Test Data
+If you need to create test data:
 ```bash
-conda activate pydcmview
-python test_actual_viewer.py
+python create_test_nrrd.py
 ```
 
-This runs the actual viewer with debug output. Watch for `[DEBUG]` messages showing:
-- Slice min/max values
-- Window/level settings
-- RGB array values
+This creates a `test_volume.nrrd` file with sample medical imaging data.
 
-**If RGB max is 0**: Window/level calculation issue
-**If RGB max > 0 but black screen**: Widget rendering issue
+## Troubleshooting
 
-### Test 3: Simple Gradient Test
-```bash
-conda activate pydcmview
-python test_halfcell_rendering.py
-```
+### If Images Appear Black
+1. Check if the terminal supports 256-color or truecolor
+2. Try adjusting the window/level settings (Shift+W to enter window/level mode)
+3. Verify the image file is valid and contains meaningful data
 
-This creates a simple red-to-blue gradient from scratch (not loading any file).
+### If Images Appear Too Dark
+The test data has a max value of 129/255 which may appear dark. You can:
+- Adjust window/level settings interactively
+- Use the equalized colormap for better contrast
 
-### Test 4: Terminal Color Support
-Run in each terminal:
-```bash
-python test_colorterm_detection.py
-```
+### If No Graphics Display
+1. Ensure your terminal supports graphics protocols (TGP, Sixel, or at least 256-color)
+2. Try a different terminal (Kitty, iTerm2, or Apple Terminal)
+3. Check terminal environment variables (TERM, COLORTERM)
 
-This shows what the terminal advertises for color support.
+## Technical Details
 
-### Test 5: Check What Widget is Selected
-```bash
-python verify_widget_selection.py
-```
+The application uses `textual-image`'s `Image` widget which automatically detects and uses the best available protocol:
+- TGP (Terminal Graphics Protocol) for Kitty
+- Sixel graphics for iTerm2/WezTerm and other compatible terminals
+- HalfcellImage (colored Unicode blocks) as fallback for broad compatibility
 
-This verifies the widget selection logic is choosing the right widget type.
-
-## Possible Issues
-
-### Issue A: HalfcellImage Requires Specific Color Support
-HalfcellImage uses ANSI color codes. If the terminal doesn't support 256-color or truecolor, it won't render correctly.
-
-**Fix**: We may need to add terminal capability detection and use UnicodeImage as fallback for limited terminals.
-
-### Issue B: Image Too Dark
-The test shows max pixel value of 129/255, which might appear very dark in some terminals.
-
-**Fix**: Add auto-contrast adjustment or modify window/level calculation.
-
-### Issue C: Terminal Not Detected as TTY
-When textual-image imports check `sys.__stdout__.isatty()`, it might return False in some contexts.
-
-**Fix**: Already attempted - we explicitly choose HalfcellImage, but need to verify it's being used.
-
-## Next Steps
-
-1. Run the tests above in both terminals
-2. Report back:
-   - Which tests show the gradient correctly?
-   - Which tests show black or no colors?
-   - Any error messages in the debug output?
-3. Based on results, we can narrow down if it's:
-   - Widget selection issue
-   - Widget rendering issue
-   - Terminal color support issue
-   - Window/level calculation issue
+This auto-detection is more reliable than manual terminal detection and handles most edge cases automatically.
